@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>PS4 Autoloader Safety Controller</title>
+  <style>
+    body { background:#101827; color:#fff; font-family:Arial,sans-serif; margin:0; text-align:center; }
+    main { max-width:900px; margin:12vh auto; padding:40px; }
+    h1 { font-size:44px; margin-bottom:12px; }
+    #status { font-size:28px; min-height:80px; }
+    button { font-size:24px; margin:10px; padding:16px 28px; border:0; border-radius:8px; }
+    .danger { background:#cf3341; color:#fff; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>PS4 Autoloader</h1>
+  <p id="status">Preparing safe launch…</p>
+  <button id="cancel" class="danger">Cancel autoload</button>
+  <button id="manual">Launch manually</button>
+  <button id="enable">Re-enable autoload</button>
+</main>
+<script src="../src/safe-autoload.js"></script>
+<script>
+  var statusNode = document.getElementById("status");
+  var loader = new PS4SafeAutoload({
+    launch: function (callbacks) {
+      // Demo only. The real adapter must confirm success from the host.
+      setTimeout(callbacks.success, 1500);
+    },
+    onState: function (info) {
+      if (info.state === "countdown") statusNode.textContent =
+        "Launching in " + info.remaining + " seconds. Press OPTIONS to cancel.";
+      else statusNode.textContent = "State: " + info.state +
+        (info.reason ? " (" + info.reason + ")" : "");
+    },
+    exit: function () {
+      statusNode.textContent = "Autoload cancelled. Return to the normal PS4 shell.";
+    }
+  });
+
+  document.getElementById("cancel").onclick = function () { loader.cancel("button"); };
+  document.getElementById("manual").onclick = function () { loader.manualLaunch(); };
+  document.getElementById("enable").onclick = function () { loader.reEnable(); };
+  loader.start();
+</script>
+</body>
+</html>
