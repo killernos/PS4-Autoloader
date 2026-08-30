@@ -60,6 +60,32 @@
     this.write("consecutive_failures", "0");
   };
 
+  SafeAutoload.prototype.recoverInterruptedAttempt = function () {
+    var failures;
+    if (!this.readBool("attempt_in_progress")) return false;
+
+    this.write("attempt_in_progress", "0");
+    failures = this.readInt("consecutive_failures") + 1;
+    this.write("consecutive_failures", failures);
+
+    if (failures >= this.options.maxFailures) {
+      this.setDisabled(true, "failure-threshold");
+      this.onState({
+        state: "locked-out",
+        failures: failures,
+        reason: "previous-attempt-interrupted"
+      });
+      return true;
+    }
+
+    this.onState({
+      state: "recovered-interrupted-attempt",
+      failures: failures,
+      reason: "previous-attempt-interrupted"
+    });
+    return false;
+  };
+
   SafeAutoload.prototype.reEnable = function () {
     this.resetFailures();
     this.setDisabled(false, "manual-reenable");
@@ -79,6 +105,8 @@
   SafeAutoload.prototype.start = function () {
     var self = this, remaining = this.options.countdownSeconds;
     if (typeof this.launch !== "function") throw new Error("A launch adapter is required");
+
+    if (this.recoverInterruptedAttempt()) return;
 
     if (this.isDisabled()) {
       this.onState({
